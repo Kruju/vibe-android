@@ -1,0 +1,54 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Optional: a fixed signing key from repo secrets lets new APKs install over old ones.
+      - name: Load signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        if: env.KEYSTORE_BASE64 != '' && env.SIGNING_PASSWORD != ''
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/signing.keystore"
+          echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/signing.keystore" >> "$GITHUB_ENV"
+          echo "SIGNING_PASSWORD=$SIGNING_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk HabitStreaks.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HabitStreaks
+          path: HabitStreaks.apk
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Habit Streaks 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          files: HabitStreaks.apk
+          body: |
+            Open this page on your Android phone, tap **HabitStreaks.apk** to download it, then open the file to install.
+            Built from `${{ github.ref_name }}` @ `${{ github.sha }}`.
