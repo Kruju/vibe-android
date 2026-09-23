@@ -557,9 +557,12 @@ private fun WhenStep(
     }
 
     Column(Modifier.verticalScroll(rememberScrollState())) {
-        SettingRow(Icons.Filled.Event, "Start date", LocalDate.ofEpochDay(startDay).format(dateFormat)) {
-            pickDate(startDay, onStart)
-        }
+        SettingRow(
+            Icons.Filled.Event,
+            "Start date",
+            LocalDate.ofEpochDay(startDay).format(dateFormat),
+            onClick = { pickDate(startDay, onStart) },
+        )
         RowDivider()
         SettingRow(
             Icons.Filled.EventBusy,
