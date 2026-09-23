@@ -30,55 +30,142 @@ class HabitStore(context: Context) {
     }
 
     companion object {
-        private const val VERSION = 1
+        private const val VERSION = 2
 
-        fun toJson(data: AppData): String {
-            val habits = JSONArray()
-            for (h in data.habits) {
-                habits.put(
-                    JSONObject()
-                        .put("id", h.id)
-                        .put("name", h.name)
-                        .put("emoji", h.emoji)
-                        .put("color", h.color)
-                        .put("created", h.createdDay)
-                        .put("done", JSONArray(h.doneDays.sorted()))
-                )
-            }
-            val reminder = JSONObject()
-                .put("enabled", data.reminder.enabled)
-                .put("hour", data.reminder.hour)
-                .put("minute", data.reminder.minute)
-            return JSONObject()
-                .put("version", VERSION)
-                .put("habits", habits)
-                .put("reminder", reminder)
-                .toString(2)
-        }
+        fun toJson(data: AppData): String = JSONObject()
+            .put("version", VERSION)
+            .put("habits", JSONArray(data.habits.map { habitToJson(it) }))
+            .put("tasks", JSONArray(data.tasks.map { taskToJson(it) }))
+            .put("categories", JSONArray(data.customCategories.map { categoryToJson(it) }))
+            .toString(1)
 
         /** Throws on anything that isn't a Habit Streaks backup. */
         fun fromJson(text: String): AppData {
             val root = JSONObject(text)
-            val habitsJson = root.getJSONArray("habits")
-            val habits = (0 until habitsJson.length()).map { i ->
-                val h = habitsJson.getJSONObject(i)
+            if (root.optInt("version", 1) < 2) return fromV1(root)
+            return AppData(
+                habits = root.getJSONArray("habits").objects().map { habitFromJson(it) },
+                tasks = (root.optJSONArray("tasks") ?: JSONArray()).objects().map { taskFromJson(it) },
+                customCategories = (root.optJSONArray("categories") ?: JSONArray()).objects().map { categoryFromJson(it) },
+            )
+        }
+
+        private fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
+
+        private fun JSONArray.ints(): List<Int> = (0 until length()).map { getInt(it) }
+
+        private fun habitToJson(h: Habit): JSONObject {
+            val entries = JSONObject()
+            for ((day, value) in h.entries) entries.put(day.toString(), value)
+            return JSONObject()
+                .put("id", h.id)
+                .put("name", h.name)
+                .put("description", h.description)
+                .put("category", h.categoryId)
+                .put("type", h.type.name)
+                .put("goal", h.goal)
+                .put("unit", h.unit)
+                .put("checklist", JSONArray(h.checklist))
+                .put(
+                    "frequency",
+                    JSONObject()
+                        .put("type", h.frequency.type.name)
+                        .put("days", JSONArray(h.frequency.days.sorted()))
+                        .put("count", h.frequency.count)
+                )
+                .put("start", h.startDay)
+                .put("end", h.endDay ?: JSONObject.NULL)
+                .put("reminder", h.reminder ?: JSONObject.NULL)
+                .put("priority", h.priority)
+                .put("isTask", h.isTask)
+                .put("entries", entries)
+        }
+
+        private fun habitFromJson(o: JSONObject): Habit {
+            val f = o.optJSONObject("frequency") ?: JSONObject()
+            val entriesJson = o.optJSONObject("entries") ?: JSONObject()
+            val entries = entriesJson.keys().asSequence().associate { it.toLong() to entriesJson.getDouble(it) }
+            val checklist = o.optJSONArray("checklist") ?: JSONArray()
+            return Habit(
+                id = o.getLong("id"),
+                name = o.getString("name"),
+                description = o.optString("description"),
+                categoryId = o.optString("category", FALLBACK_CATEGORY),
+                type = enumValueOrNull<EvalType>(o.optString("type")) ?: EvalType.YES_NO,
+                goal = o.optDouble("goal", 1.0),
+                unit = o.optString("unit"),
+                checklist = (0 until checklist.length()).map { checklist.getString(it) },
+                frequency = Frequency(
+                    type = enumValueOrNull<FreqType>(f.optString("type")) ?: FreqType.DAILY,
+                    days = (f.optJSONArray("days") ?: JSONArray()).ints().toSet(),
+                    count = f.optInt("count", 1).coerceAtLeast(1),
+                ),
+                startDay = o.optLong("start", todayEpochDay()),
+                endDay = if (o.isNull("end")) null else o.optLong("end"),
+                reminder = if (o.isNull("reminder")) null else o.optInt("reminder"),
+                priority = o.optInt("priority", 1),
+                isTask = o.optBoolean("isTask", false),
+                entries = entries,
+            )
+        }
+
+        private fun taskToJson(t: Task) = JSONObject()
+            .put("id", t.id)
+            .put("name", t.name)
+            .put("note", t.note)
+            .put("category", t.categoryId)
+            .put("day", t.day)
+            .put("priority", t.priority)
+            .put("done", t.done)
+
+        private fun taskFromJson(o: JSONObject) = Task(
+            id = o.getLong("id"),
+            name = o.getString("name"),
+            note = o.optString("note"),
+            categoryId = o.optString("category", "task"),
+            day = o.optLong("day", todayEpochDay()),
+            priority = o.optInt("priority", 1),
+            done = o.optBoolean("done", false),
+        )
+
+        private fun categoryToJson(c: Category) = JSONObject()
+            .put("id", c.id)
+            .put("name", c.name)
+            .put("icon", c.icon)
+            .put("color", c.color)
+
+        private fun categoryFromJson(o: JSONObject) = Category(
+            id = o.getString("id"),
+            name = o.getString("name"),
+            icon = o.optString("icon", "category"),
+            color = o.optLong("color", 0xFF78909C),
+            custom = true,
+        )
+
+        /** Version 1 had simple yes/no habits with an emoji and one global reminder. */
+        private fun fromV1(root: JSONObject): AppData {
+            val reminder = root.optJSONObject("reminder")
+            val reminderMinutes = if (reminder != null && reminder.optBoolean("enabled")) {
+                reminder.optInt("hour", 20) * 60 + reminder.optInt("minute", 0)
+            } else {
+                null
+            }
+            val habits = root.getJSONArray("habits").objects().map { h ->
                 val done = h.optJSONArray("done") ?: JSONArray()
+                val days = (0 until done.length()).map { done.getLong(it) }
+                val created = h.optLong("created", todayEpochDay())
                 Habit(
                     id = h.getLong("id"),
                     name = h.getString("name"),
-                    emoji = h.optString("emoji", "✅"),
-                    color = h.optInt("color", 0),
-                    createdDay = h.optLong("created", todayEpochDay()),
-                    doneDays = (0 until done.length()).map { done.getLong(it) }.toSet(),
+                    startDay = minOf(created, days.minOrNull() ?: created),
+                    reminder = reminderMinutes,
+                    entries = days.associateWith { 1.0 },
                 )
             }
-            val r = root.optJSONObject("reminder")
-            val reminder = if (r == null) ReminderSettings() else ReminderSettings(
-                enabled = r.optBoolean("enabled", false),
-                hour = r.optInt("hour", 20).coerceIn(0, 23),
-                minute = r.optInt("minute", 0).coerceIn(0, 59),
-            )
-            return AppData(habits, reminder)
+            return AppData(habits = habits)
         }
+
+        private inline fun <reified T : Enum<T>> enumValueOrNull(name: String): T? =
+            enumValues<T>().firstOrNull { it.name == name }
     }
 }

@@ -1,13 +1,21 @@
 # Habit Streaks 🔥
 
-A small, offline Android app for building daily habits.
+An offline habit tracker, to-do list and timer for Android, with a dark look and a hot-pink accent.
 
-- **Check off habits** with one tap on the Today screen, with a 7-day strip for each habit
-- **Streaks**: current streak, best streak and 30-day completion rate
-- **Monthly calendar** per habit: tap any past day to fix your history
-- **Daily reminder** (optional) that only notifies you when habits are still left
-- **Backup**: export and import everything as a JSON file
-- Light/dark mode and Material You colors (Android 12+)
+- **Today**: a scrollable date strip plus everything scheduled for that day. Tap the circle to check an item off.
+- **Habits** can be evaluated four ways:
+  - **Yes/no**
+  - **Numeric**, e.g. 8 glasses of water
+  - **Timer**, e.g. 30 min of reading, with a built-in stopwatch
+  - **Checklist** of sub-items
+- **Flexible schedules**: every day, specific weekdays, N days per week, specific days of the month, or every N days. Each schedule can have a start date and an optional end date.
+- **Step-by-step creation**: category → how to evaluate → define → how often → when (plus reminder and priority).
+- **Statistics** for each habit: a monthly calendar, habit score, current and best streak, completion counts and a 6-month bar chart.
+- **Tasks**: one-off tasks with a date and priority, plus recurring tasks (they repeat on a schedule but have no stats).
+- **Categories**: 15 built-in categories plus your own, each with an icon and color.
+- **Timer tab** with a stopwatch and a countdown with presets.
+- **Reminders** for each habit, sent only if the habit isn't done yet.
+- **Backup & restore** to a JSON file.
 
 All data stays on your phone in a single JSON file in the app's private storage.
 There is no account, no network access and no tracking.

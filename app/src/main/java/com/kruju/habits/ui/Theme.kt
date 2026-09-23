@@ -1,38 +1,56 @@
 package com.kruju.habits.ui
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
-val HabitColors = listOf(
-    Color(0xFFFF6B3D),
-    Color(0xFF2E9BF0),
-    Color(0xFF34B36B),
-    Color(0xFF9C5CF5),
-    Color(0xFFF5B521),
-    Color(0xFFEF4F8B),
-    Color(0xFF14B8A6),
-    Color(0xFF6B7280),
+// A dark, high-contrast look: near-black background, charcoal surfaces and one hot-pink accent.
+object Palette {
+    val Background = Color(0xFF111111)
+    val Surface = Color(0xFF1B1B1B)
+    val Card = Color(0xFF252525)
+    val CardHigh = Color(0xFF2F2F2F)
+    val Divider = Color(0xFF2A2A2A)
+    val Accent = Color(0xFFE8175D)
+    val AccentDim = Color(0xFF74102F)
+    val Text = Color(0xFFF2F2F2)
+    val TextSoft = Color(0xFF9E9E9E)
+    val TextFaint = Color(0xFF5E5E5E)
+    val Success = Color(0xFF3DBE6B)
+    val Fail = Color(0xFFE5484D)
+}
+
+val CategoryColors = listOf(
+    0xFFE8175D, 0xFFF4511E, 0xFFFB8C00, 0xFFFFB300, 0xFF7CB342, 0xFF43A047,
+    0xFF26A69A, 0xFF00ACC1, 0xFF1E88E5, 0xFF5C6BC0, 0xFFAB47BC, 0xFF8D6E63,
 )
-
-fun habitColor(index: Int): Color = HabitColors[index.mod(HabitColors.size)]
 
 @Composable
 fun HabitTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    val context = LocalContext.current
-    val colors = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> darkColorScheme()
-        else -> lightColorScheme()
-    }
+    val colors = darkColorScheme(
+        primary = Palette.Accent,
+        onPrimary = Color.White,
+        primaryContainer = Palette.AccentDim,
+        onPrimaryContainer = Color.White,
+        secondary = Palette.Accent,
+        onSecondary = Color.White,
+        secondaryContainer = Palette.AccentDim,
+        onSecondaryContainer = Color.White,
+        background = Palette.Background,
+        onBackground = Palette.Text,
+        surface = Palette.Background,
+        onSurface = Palette.Text,
+        surfaceVariant = Palette.Card,
+        onSurfaceVariant = Palette.TextSoft,
+        surfaceContainerLowest = Palette.Background,
+        surfaceContainerLow = Palette.Surface,
+        surfaceContainer = Palette.Surface,
+        surfaceContainerHigh = Palette.Card,
+        surfaceContainerHighest = Palette.CardHigh,
+        outline = Palette.TextFaint,
+        outlineVariant = Palette.Divider,
+        error = Palette.Fail,
+    )
     MaterialTheme(colorScheme = colors, content = content)
 }
